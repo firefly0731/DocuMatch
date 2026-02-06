@@ -57,3 +57,11 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Sample documents
+sample/
+
+# Excel output files
+*.xlsx
+output_*.xlsx
+batch_output_*.xlsx
