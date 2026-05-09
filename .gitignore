@@ -68,3 +68,4 @@ sample/
 *.xlsx
 output_*.xlsx
 batch_output_*.xlsx
+.superpowers/
