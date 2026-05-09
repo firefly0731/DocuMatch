@@ -697,3 +697,50 @@ packages = ["src/documatch"]
 - 출발점 코드: `DocuMatch/backend/app/cli/test_runner.py` (2087 lines), `fix_hyperlinks.py`
 - 의존 서비스: `app.services.{document_processor, batch_engine, plan_agent, agenda_grouping, synthesis, file_scanner, export, llm_client}`, `app.models.{agenda, extraction_spec}`, `app.core.config`
 - 제외할 모듈: `agenda_grouping`, `synthesis`, `plan_agent` (LangGraph 기반)
+
+---
+
+## 13. 구현 현황 (2026-05-09 기준)
+
+### 13.1 완료 상태
+- v0.1.0 코드 완성, 161 테스트 통과, 커버리지 89%, ruff clean, vulture 0건
+- GitHub: https://github.com/firefly0731/documatch-cli (private)
+- 로컬: `/Users/yjban/Desktop/documatch-cli/`
+- 최신 commit: `e90aed7 feat(cli): documatch init 서브커맨드 + 첫 실행 자동 부트스트랩`
+- 태그 `v0.1.0` 푸시됨, PyPI 미배포
+
+### 13.2 본 스펙 대비 추가된 기능
+
+| 추가 항목 | 위치 | 메모 |
+|---|---|---|
+| 회사 LLM 서버 모드 | `OpenAIClient.base_url`, `factory._normalize_base_url`, `Settings.{plan,batch}_agent_*` | OpenAI 호환 chat-completions endpoint 사용 (사내 GenAI 게이트웨이 등) |
+| `documatch init` 서브커맨드 | `cli/init_command.py` | LLM 서버 정보 6개를 대화형/플래그로 입력해 글로벌 .env에 저장 |
+| 첫 실행 자동 부트스트랩 | `cli/_setup.py:ensure_setup` | tabula rasa 시 init 자동 진입, 부분 설정 시 누락 키만 prompt |
+| 글로벌+로컬 .env 자동 로드 | `Settings.model_config.env_file` | `~/.config/documatch/.env` → `./.env` 순 (뒤가 우선) |
+
+### 13.3 본 스펙 대비 변경된 부분
+
+| 변경 | 사유 |
+|---|---|
+| Click `_SmartGroup` custom Group | scan_path 위치 인자와 spec/init/config/hyperlinks 서브커맨드 라우팅 충돌 해결 |
+| LLM Protocol에서 `cache_breakpoint`, `json_schema` 파라미터 제거 | 어떤 caller도 전달하지 않는 dead 파라미터 (YAGNI 정리) |
+| `LLMClient.supports_vision`, `supports_prompt_cache` 제거 | 한 번도 읽히지 않는 메타데이터 |
+| `DocumentProcessor.extensions`, `requires_vision` ClassVar 제거 | registry가 하드코딩 매핑만 사용 — ClassVar는 dead |
+| `FieldType(str, Enum)` → `StrEnum` | UP042 lint + Python 3.11+ 표준 |
+
+### 13.4 미완료 / 다음 작업
+
+| 작업 | 상태 |
+|---|---|
+| PyPI 계정/프로젝트명 등록 | ⏳ |
+| Trusted Publishing OIDC 설정 (PyPI ↔ GitHub Actions) | ⏳ |
+| `release.yml` 자동 트리거 → PyPI 업로드 | 워크플로 작성됨, 미실행 |
+| 수동 스모크 (실 API 키, 6 HITL 게이트) | 사용자가 회사 컴에서 직접 |
+| 커버리지 89% → 95% 보강 (xls.py, pdf.py 분기) | 선택 |
+| GitHub repo public 전환 검토 | 사용자 결정 필요 (private 유지 가능) |
+
+### 13.5 다음 세션에서 이어받기
+
+세션 핸드오프 가이드: [`docs/superpowers/specs/2026-05-09-documatch-cli-handoff.md`](./2026-05-09-documatch-cli-handoff.md)
+
+새 Claude Code 세션에서 작업 이어받으려면 위 핸드오프 doc을 먼저 읽어 컨텍스트 확보 후 진행.
