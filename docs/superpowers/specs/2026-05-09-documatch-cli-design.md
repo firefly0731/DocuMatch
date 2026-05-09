@@ -705,7 +705,8 @@ packages = ["src/documatch"]
 ### 13.1 완료 상태
 - v0.1.0 코드 완성, 161 테스트 통과, 커버리지 89%, ruff clean, vulture 0건
 - GitHub: https://github.com/firefly0731/documatch-cli (private)
-- 로컬: `/Users/yjban/Desktop/documatch-cli/`
+- 로컬 (작성자 macOS): `/Users/yjban/Desktop/documatch-cli/` — 다른 환경(Windows 등)에서는
+  핸드오프 doc §0.2 환경별 경로 매핑 참고
 - 최신 commit: `e90aed7 feat(cli): documatch init 서브커맨드 + 첫 실행 자동 부트스트랩`
 - 태그 `v0.1.0` 푸시됨, PyPI 미배포
 
