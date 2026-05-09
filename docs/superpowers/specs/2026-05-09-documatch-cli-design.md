@@ -250,7 +250,7 @@ class UnifiedDocument:
 | `.docx` | `DocxProcessor` | python-docx | 단락+표 텍스트 |
 | `.xlsx` | `XlsxProcessor` | openpyxl | 시트별로 분리, sheet_name 메타 |
 | `.xls` | `XlsProcessor` | xlrd | xlsx 동일 패턴 |
-| `.jpg/.jpeg/.png` | `ImageProcessor` | Pillow | base64, raw_text 빈, requires_vision |
+| `.jpg/.jpeg/.png` | `ImageProcessor` | Pillow | base64, raw_text 빈, requires_vision (BMP/GIF/TIFF는 v0.1 비지원) |
 | `.txt` | `TextProcessor` | chardet | 자동 인코딩 감지 |
 | `.md` | `MarkdownProcessor` | (stdlib) | raw text |
 | `.csv` | `CsvProcessor` | (stdlib) | 마크다운 표 변환 |
@@ -420,7 +420,11 @@ class LLMRoleConfig(BaseModel):
     max_retries: int = 3
 
 class Settings(BaseSettings):
-    api_keys: dict[str, str | None] = {"anthropic": None, "openai": None}
+    # API 키는 표준 변수명을 그대로 읽는다 (DOCUMATCH_ prefix 미적용)
+    anthropic_api_key: str | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+    openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+
+    # 그 외 설정은 DOCUMATCH_ prefix
     llm_spec: LLMRoleConfig = LLMRoleConfig()
     llm_extract: LLMRoleConfig = LLMRoleConfig(model="claude-haiku-4-5-20251001")
     spec_store_dir: Path = Path("~/.config/documatch/specs").expanduser()
@@ -431,12 +435,15 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DOCUMATCH_",
         env_nested_delimiter="__",
+        populate_by_name=True,
         toml_file=[
             Path.cwd() / "documatch.toml",
             Path("~/.config/documatch/config.toml").expanduser(),
         ],
     )
 ```
+
+API 키는 `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` 표준 변수명을 그대로 읽는다 (Anthropic·OpenAI SDK 관행 일치). 그 외 설정은 `DOCUMATCH_` prefix + `__` nested delimiter를 사용한다.
 
 ### 7.2 환경 변수 예시
 
@@ -523,7 +530,9 @@ class UserAbort(DocuMatchError): pass
 
 ### 8.3 부분 실패
 - 100건 중 5건 실패해도 95건은 Excel 저장 + 실패 5건은 별도 시트 `failed_documents`에 표시
-- 자동화 모드 기본은 종료 코드 0 + stderr 경고. `--fail-on-error N`으로 임계값 설정 가능
+- 자동화 모드 기본은 종료 코드 0 + stderr 경고
+- `--fail-on-error N`: N건 이상 처리 실패 시 비-0 종료 (기본 비활성)
+- `--fail-on-review`: 검토 필요(needs_review=True) 항목이 1건이라도 있으면 비-0 종료 (CI 게이트용)
 
 ### 8.4 Logging
 - stdlib `logging`, logger 이름 = `documatch`
@@ -606,7 +615,9 @@ classifiers = [
     "Topic :: Office/Business",
     "Environment :: Console",
 ]
-dependencies = [...]   # 5.3 참조
+# dependencies: 섹션 5.3에 정의된 14개 패키지를 그대로 사용
+# (pypdf, pdf2image, Pillow, python-docx, openpyxl, xlrd, beautifulsoup4,
+#  chardet, anthropic, openai, click, rich, pydantic, pydantic-settings)
 
 [project.scripts]
 documatch = "documatch.cli.app:main"
@@ -614,6 +625,8 @@ documatch = "documatch.cli.app:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/documatch"]
 ```
+
+`authors`, `Homepage`, `Issues` 등 GitHub 소유자/이메일이 들어가는 필드는 신규 저장소 생성 시 확정한다 (구현 단계 첫 task에서 결정).
 
 ### 9.2 버전 관리
 - SemVer
