@@ -2390,3 +2390,59 @@ Codex 리뷰 결과 반영 내역:
 - 7단계 통합 end-to-end interactive 테스트 추가 — 기존 `tests/integration/test_engine_*` 3종이 ScriptedReviewer로 동등한 통합 검증 제공. 추가 task 불필요.
 - `REMEDY_MAP` 공개 vs 비공개 — 공개로 결정 (확장 가능성 + 다른 모듈에서 참조 가능). 스펙은 그대로.
 - Release workflow validation pre-tag — workflow 단순화 후 첫 tag 푸시로 검증. 위험 낮음 (v0.2.0/v0.2.1 검증 완료된 구조 재사용).
+
+---
+
+## v0.3.1 Patch Notes (2026-05-10)
+
+v0.3.0 release 후 사용자 실사용 피드백으로 즉시 추가된 6개 commit. evidence/ PDF 5건으로 실제 추출 검증 완료.
+
+**Release**: https://github.com/firefly0731/documatch-cli/releases/tag/v0.3.1
+
+### Added (사용자 요청)
+
+1. **LLM 호출 site 실시간 spinner** — Codex 리뷰의 v0.3.0 미반영 항목 + 사용자 직접 요청 (`Claude Code의 주황색 별 같은 표시`):
+   - Reviewer Protocol에 `show_thinking(message)` / `hide_thinking()` 추가
+   - InteractiveReviewer가 `live_spinner` (transient=True 기본) 사용
+   - AutomationReviewer는 quiet 시 무음, 아니면 stderr `[thinking] {msg}`
+   - Engine 4 LLM call sites (generate, refine ×2, extract) `try/finally`로 wrap
+   - commit `ba0d088`
+
+2. **refine 누적 컨텍스트** — 사용자 요청 (`이전 요청 기억해서 짧은 후속 피드백만으로도 안전하게 누적되게`):
+   - `_State`에 `refine_history: list[str]` 추가, 매 refine 사이클마다 누적
+   - `SpecGenerator.refine()`에 `original_prompt` + `prior_feedbacks` 파라미터 추가
+   - 시스템 프롬프트에 "사용자가 명시적으로 제거 요청한 필드만 제거" 원칙 명시
+   - 효과: "제재일과 제재내용 추출" → 2개 필드, 이후 "과태료 추가"만 입력 → 3개 필드 (이전엔 모두 다시 적어야 안전)
+   - commit `cf52205`
+
+### Changed (UX polish)
+
+3. **사용자 친화적 표현 통일 — "스펙" → "추출 항목"** — 사용자 피드백 ("스펙이라는 말이 와닿지 않음"):
+   - Spinner: "AI가 스펙 생성 중" → "AI가 요청하신 항목 정리 중"
+   - Spinner: "AI에게 스펙 수정 요청 중" → "AI가 요청 사항 반영 중"
+   - Spinner: "샘플 추출 중" → "AI가 샘플 파일에서 값 추출 중"
+   - Step 3 헤더, 표 제목, legend, prompt, CLI 도움말 일괄 변경
+   - commit `f19d22f`
+
+### Fixed (회귀)
+
+4. **다항목 입력 시 1개만 인식되던 회귀** — 사용자 발견 (`제재일, 제재내용, 과태료 입력해도 1개만 인식`):
+   - `_GENERATE_SYSTEM` 프롬프트에 "사용자가 요청한 모든 항목을 빠짐없이 fields 배열에 포함" 핵심 원칙 추가
+   - 한국어 연결어("과/와", "그리고", "및", 쉼표, 줄바꿈) 분리 규칙 명시
+   - 구체적 예시 추가 ("4개 항목 → 4개 필드")
+   - `_REFINE_SYSTEM`도 동일 강화
+   - commit `472ea0a`
+
+### Verified
+
+5. **evidence/ 5건 PDF 실사용 검증** — 금융감독원 제재내용 공개안:
+   - 7개 필드(금융기관명/제재일/과태료/임원수/직원수/위반내용/관련법규) 추출
+   - 5/5 성공, 평균 신뢰도 0.95 (모두 ≥0.85, 검토 필요 0건)
+   - --auto-approve --spec-file --summary 모드로 즉시 batch 추출
+   - Excel 출력 (한글 헤더 인코딩 정상)
+
+### 운영 노트
+
+- v0.3.1 tag가 처음 push된 commit(`8186b27`)이 reset된 옛 commit이라 잘못된 release workflow가 trigger됨 → 즉시 cancel + tag 삭제 후 HEAD(`cb40d29`)에 재태깅 + 재push
+- Release workflow는 정정 commit 기준으로 정상 수행
+- v0.3.0 spec의 "v0.3.x 보류" 항목 중 `live_spinner` 통합이 v0.3.1로 앞당겨짐. Windows ASCII 폴백, 7단계 통합 e2e 테스트는 여전히 보류.
