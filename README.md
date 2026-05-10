@@ -1,136 +1,39 @@
-# DocuMatch
+# DocuMatch — Design Docs for documatch-cli
 
-**Audit Evidence Automation Tool** - Extract structured data from audit evidence documents (PDF & Word) and produce Excel outputs with single-cell summary sentences.
+이 레포지토리는 [`documatch-cli`](https://github.com/firefly0731/documatch-cli)의 **설계 명세(spec) + 실행 계획(plan)** 을 버전 관리하는 docs-only 레포입니다.
 
-## Architecture
+코드는 [firefly0731/documatch-cli](https://github.com/firefly0731/documatch-cli)에 있습니다.
 
-```
-DocuMatch/
-├── frontend/          # Next.js 14+ (App Router, TypeScript, Tailwind, shadcn/ui)
-├── backend/           # Python FastAPI + LangGraph + LangChain
-├── PLAN.md            # Detailed implementation plan
-└── README.md
-```
+## 왜 docs를 별도 레포로 두는가
 
-## Core Workflow
+documatch-cli는 100% 바이브 코딩(자연어 기반 AI-협업 개발)으로 진행됐고, 문맥 유지의 안정성은 **harness engineering** 워크플로 — `spec → plan → subagent 분기 실행 → 교차 리뷰 → atomic commit·tag` — 로 확보했습니다. 이 레포는 그 워크플로의 산출물(설계 결정·계획·핸드오프 노트)이 코드와 독립적으로 누적·버전 관리되는 곳입니다.
 
-### 1. Plan Mode (Interactive Calibration)
-- Upload ONE sample document
-- AI Agent (LangGraph) analyzes and proposes extraction schema
-- Refine schema through chat-based feedback
-- Approve and save schema for batch processing
+새 세션에서 코드(`documatch-cli`)와 본 docs 레포를 함께 열면, 누구든 직전 작업 맥락을 그대로 이어받아 작업을 계속할 수 있습니다.
 
-### 2. Batch Mode (High-Volume Processing)
-- Upload 100+ documents (PDF & DOCX mixed)
-- Apply approved schema with Anthropic Prompt Caching (~90% cost savings)
-- Review results in split-view grid
-- Export to Excel
-
-## Tech Stack
-
-### Backend
-- **Framework:** FastAPI + Pydantic V2
-- **AI Orchestration:** LangGraph (Plan Mode), LangChain LCEL (Batch Mode)
-- **LLM:** Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)
-- **Document Processing:** pypdf, python-docx, pdf2image
-- **Database:** SQLite (aiosqlite)
-- **Excel Export:** openpyxl
-
-### Frontend
-- **Framework:** Next.js 14+ (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Data Grid:** TanStack Table
-- **Split View:** react-resizable-panels
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- Poetry (Python package manager)
-- Poppler (for PDF to image conversion)
-
-### Backend Setup
-
-```bash
-cd backend
-poetry install
-cp ../.env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
-poetry run uvicorn app.main:app --reload
-```
-
-Backend will be available at:
-- API: http://localhost:8000
-- Docs: http://localhost:8000/docs
-- Health: http://localhost:8000/health
-
-### Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend will be available at http://localhost:3000
-
-## API Endpoints
-
-### Health & Status
-- `GET /health` - Health check
-- `GET /api/v1/status` - Detailed status
-
-### Plan Mode
-- `POST /api/v1/plan/start` - Start new planning session
-- `POST /api/v1/plan/feedback` - Submit feedback/approval
-- `POST /api/v1/plan/test-extraction` - Test current schema
-- `GET /api/v1/plan/specs` - List saved specs
-- `GET /api/v1/plan/specs/{spec_id}` - Get specific spec
-
-### Batch Mode
-- `POST /api/v1/batch/start` - Start batch processing
-- `GET /api/v1/batch/jobs/{job_id}/status` - Get job status
-- `GET /api/v1/batch/jobs/{job_id}/results` - Get extraction results
-- `POST /api/v1/batch/jobs/{job_id}/retry` - Retry failed documents
-- `GET /api/v1/batch/jobs/{job_id}/export` - Export to Excel
-
-## Environment Variables
-
-See `.env.example` for required configuration:
+## 구조
 
 ```
-ANTHROPIC_API_KEY=your-api-key-here
-DEBUG=false
+docs/superpowers/
+├── specs/   # 설계 명세 (요구사항·아키텍처·결정사항)
+└── plans/   # 단계별 실행 계획 (TDD task 나열, 각 step에 코드/명령 포함)
 ```
 
-## Development
+## 버전별 산출물
 
-### Running Tests
+| 버전 | 명세 (spec) | 계획 (plan) |
+|---|---|---|
+| **v0.3.0** — CLI Polish + GUI Hard Removal | [2026-05-10-documatch-cli-v0.3-design.md](docs/superpowers/specs/2026-05-10-documatch-cli-v0.3-design.md) | [2026-05-10-documatch-cli-v0.3.md](docs/superpowers/plans/2026-05-10-documatch-cli-v0.3.md) |
+| **v0.2.0** — Desktop GUI (시도 후 폐기) | [2026-05-09-documatch-desktop-design.md](docs/superpowers/specs/2026-05-09-documatch-desktop-design.md) | [2026-05-09-documatch-desktop.md](docs/superpowers/plans/2026-05-09-documatch-desktop.md) |
+| **v0.1.0** — CLI 초기 버전 | [2026-05-09-documatch-cli-design.md](docs/superpowers/specs/2026-05-09-documatch-cli-design.md) | [2026-05-09-documatch-cli.md](docs/superpowers/plans/2026-05-09-documatch-cli.md) |
 
-```bash
-# Backend
-cd backend
-poetry run pytest
+v0.3.1 patch notes(spinner 통합·refine 누적 컨텍스트·UI 표현 정리·다항목 분리 fix)는 v0.3 plan 끝부분의 `## v0.3.1 Patch Notes` 섹션 참조.
 
-# Frontend
-cd frontend
-npm test
-```
+## documatch-cli 빠른 소개
 
-### Code Formatting
+수십~수백 건의 비정형 문서(제재공개안·계약서·송장 등)에서 일관된 항목을 Excel로 정리하는 반복 업무를 **Human-in-the-Loop 7단계 게이트** AI CLI로 자동화합니다.
 
-```bash
-# Backend (ruff)
-cd backend
-poetry run ruff check --fix .
-poetry run ruff format .
-
-# Frontend (prettier)
-cd frontend
-npm run format
-```
+- Code: https://github.com/firefly0731/documatch-cli
+- Latest release: https://github.com/firefly0731/documatch-cli/releases/latest
 
 ## License
 
